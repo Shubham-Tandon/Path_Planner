@@ -22,7 +22,7 @@ fig1: Diagram showing the Position IDs of surrounding vehicles
 
 Next, the algorithm loops overt the sensor fusion data to find the surrounding objects (pos0 - pos4). This can be found in "Section 3" of the code. <br>
 
-Once the objects are identified, the algorithm decides if the a lane change is required. Lane change is required if an object is stuck within a slower car. To decide what kind of maneuver is needed the following decidion treee is used:<br>
+Once the objects are identified, the algorithm decides if the a lane change is required. Lane change is required if an object is stuck within a slower car. To decide what kind of maneuver is needed the following decidion treee is used (find in "Section 4" of the code:<br>
 
 - Overtaking from the left side is given preference given equal conditions on the left and right lanes.<br>
 - Check if there are no cars on the left lane. Move to left lane with current speed.<br>
@@ -33,3 +33,7 @@ Once the objects are identified, the algorithm decides if the a lane change is r
 - Check if there is a car in front of the host vehicle but there is no car behind in the right lane then check if there is sufficient distance between the car and host vehicle. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
 - Check if there is a car in front and behind the host vehicle in the left lane then check if there is sufficient distance between the cars for host vehicle to move in that lane. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
 - Check if there is a car in front and behind the host vehicle in the right lane then check if there is sufficient distance between the cars for host vehicle to move in that lane. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
+
+Once the next car maneuver is identified by the algorithm, then the actual path to be followed by the host vehicle if found out. For this the technique described by Aron Brown (from Udacity) is considered. First, three waypoints are considered. For a simple task of keeping within lane, waypoints are considered closer to each other since complex motion of the car is not expected. Whereas, if a lane change is required complex motion of the host vehicle is expected. Hence longer waypoints were considered so that the final path generated is smoother and accelarations values are within acceptable level. The waypoint values were achieved through trial and error process. <br>
+
+After the waypoints are known, a spline curve is generated which smoothly connects these five points (three points from the waypoint discussed in the above paragraph) plus two points from the previous path. After generating the spline, points lying on that curve need to be found out. The separation of points is determined by the target velocity for that cycle. The pints are separated such that the velocity and accelarations needed to reach those points are within acceptable levels. 
