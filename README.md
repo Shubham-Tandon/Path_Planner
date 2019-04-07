@@ -8,14 +8,28 @@ In this project your goal is to safely navigate around a virtual highway with ot
 The current driving lane of the host vehicle is determined first using the d value of the host vehicle taken from localization data. Each lane is assgined an ID (shown in the diagram below).
 
 <img src="/Supporting_Files/Lane_ID.png"/>
-_fig1: Diagram showing the lane IDs_
+fig1: Diagram showing the lane IDs
 
-To decide the behavior of the host vehicle, five surrounding cars are tracked. The cars identified by the following positions (also shows in figure 2):
-Pos0: Car in the host lane and closes to the host vehicle.
-Pos1: Car closest to the host vehicle in the lane left to the host vehicle and behind the host vehicle. 
-Pos2: Car closest to the host vehicle in the lane left to the host vehicle and ahead of the host vehicle. 
-Pos3: Car closest to the host vehicle in the lane right to the host vehicle and behind the host vehicle. 
-Pos4: Car closest to the host vehicle in the lane right to the host vehicle and behind the host vehicle. 
+To decide the behavior of the host vehicle, five surrounding cars are tracked. The cars identified by the following positions (also shows in figure 2): <br>
+Pos0: Car in the host lane and closes to the host vehicle.<br>
+Pos1: Car closest to the host vehicle in the lane left to the host vehicle and behind the host vehicle. <br>
+Pos2: Car closest to the host vehicle in the lane left to the host vehicle and ahead of the host vehicle. <br>
+Pos3: Car closest to the host vehicle in the lane right to the host vehicle and behind the host vehicle. <br>
+Pos4: Car closest to the host vehicle in the lane right to the host vehicle and behind the host vehicle. <br>
 
 <img src="/Supporting_Files/Obj_Pos.png"/>
-*fig1: Diagram showing the Position IDs of surrounding vehicles* 
+fig1: Diagram showing the Position IDs of surrounding vehicles
+
+Next, the algorithm loops overt the sensor fusion data to find the surrounding objects (pos0 - pos4). This can be found in "Section 3" of the code. <br>
+
+Once the objects are identified, the algorithm decides if the a lane change is required. Lane change is required if an object is stuck within a slower car. To decide what kind of maneuver is needed the following decidion treee is used:<br>
+
+- Overtaking from the left side is given preference given equal conditions on the left and right lanes.<br>
+- Check if there are no cars on the left lane. Move to left lane with current speed.<br>
+- Check if there are no cars on the right lane. Move to right lane with current speed.<br>
+- Check if there is no car in front of the host vehicle but there is a car behind in the left lane then check if there is sufficient distance between the car and host vehicle. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
+- Check if there is no car in front of the host vehicle but there is a car behind in the right lane then check if there is sufficient distance between the car and host vehicle. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
+- Check if there is a car in front of the host vehicle but there is no car behind in the left lane then check if there is sufficient distance between the car and host vehicle. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
+- Check if there is a car in front of the host vehicle but there is no car behind in the right lane then check if there is sufficient distance between the car and host vehicle. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
+- Check if there is a car in front and behind the host vehicle in the left lane then check if there is sufficient distance between the cars for host vehicle to move in that lane. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
+- Check if there is a car in front and behind the host vehicle in the right lane then check if there is sufficient distance between the cars for host vehicle to move in that lane. The distance threshold is decided based on the velocity difference between that car and the host. If satissfied move to that lane. <br>
