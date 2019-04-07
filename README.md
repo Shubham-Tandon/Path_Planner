@@ -8,3 +8,14 @@ In this project your goal is to safely navigate around a virtual highway with ot
 The current driving lane of the host vehicle is determined first using the d value of the host vehicle taken from localization data. Each lane is assgined an ID (shown in the diagram below).
 
 <img src="/Supporting_Files/Lane_ID.png"/>
+*fig1: Diagram showing the lane IDs* 
+
+To decide the behavior of the host vehicle, five surrounding cars are tracked. The cars identified by the following positions (also shows in figure 2):
+Pos0: Car in the host lane and closes to the host vehicle.
+Pos1: Car closest to the host vehicle in the lane left to the host vehicle and behind the host vehicle. 
+Pos2: Car closest to the host vehicle in the lane left to the host vehicle and ahead of the host vehicle. 
+Pos3: Car closest to the host vehicle in the lane right to the host vehicle and behind the host vehicle. 
+Pos4: Car closest to the host vehicle in the lane right to the host vehicle and behind the host vehicle. 
+
+<img src="/Supporting_Files/Obj_Pos.png"/>
+*fig1: Diagram showing the Position IDs of surrounding vehicles* 
