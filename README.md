@@ -39,8 +39,8 @@ Once the next car maneuver is identified by the algorithm, then the actual path 
 After the waypoints are known, a spline curve is generated which smoothly connects these five points (three points from the waypoint discussed in the above paragraph) plus two points from the previous path. After generating the spline, points lying on that curve need to be found out. The separation of points is determined by the target velocity for that cycle. The pints are separated such that the velocity and accelarations needed to reach those points are within acceptable levels. 
 
 ## Results
-The algorithm was able to navigate around the track safetly meeting the required criteria of being able to drive 4.32 miles without incedent. 
-<img src="/Supporting_Files/Sim_ScreenShot.png"/>
+The algorithm was able to navigate around the track safetly meeting the required criteria of being able to drive 4.32 miles without incedent. <br>
+<img src="/Supporting_Files/Sim_ScreenShot.png"/><br>
 fig3: Screen shot of the simulator showing the result.
 
 
