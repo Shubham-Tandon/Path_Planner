@@ -18,7 +18,7 @@ Pos3: Car closest to the host vehicle in the lane right to the host vehicle and 
 Pos4: Car closest to the host vehicle in the lane right to the host vehicle and behind the host vehicle. <br>
 
 <img src="/Supporting_Files/Obj_Pos.png"/>
-fig1: Diagram showing the Position IDs of surrounding vehicles
+fig2: Diagram showing the Position IDs of surrounding vehicles
 
 Next, the algorithm loops overt the sensor fusion data to find the surrounding objects (pos0 - pos4). This can be found in "Section 3" of the code. <br>
 
@@ -40,6 +40,9 @@ After the waypoints are known, a spline curve is generated which smoothly connec
 
 ## Results
 The algorithm was able to navigate around the track safetly meeting the required criteria of being able to drive 4.32 miles without incedent. 
+<img src="/Supporting_Files/Sim_ScreenShot.png"/>
+fig3: Screen shot of the simulator showing the result.
+
 
 ## Improvements
 There are several improvement that can be made in the algorithm: <br>
