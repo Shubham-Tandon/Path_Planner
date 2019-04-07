@@ -7,9 +7,3 @@ In this project your goal is to safely navigate around a virtual highway with ot
 
 The current driving lane of the host vehicle is determined first using the d value of the host vehicle taken from localization data. Each lane is assgined an ID (shown in the diagram below).
 
-||<space><space>Lane 0<space><space>|<space><space>Lane 1<space><space>|<space><space>Lane 2<space><space>|<br>
-||<space><space><space><space><space><space><space><space><space><space>|<space><space><space><space><space><space><space><space><space><space>|<space><space><space><space><space><space><space><space><space><space>|<br>
-||<space><space><space><space><space><space><space><space><space><space>|<space><space><space><space><space><space><space><space><space><space>|<space><space><space><space><space><space><space><space><space><space>|<br>
-||<space><space><space><space><space><space><space><space><space><space>|<space><space><space><space><space><space><space><space><space><space>|<space><space><space><space><space><space><space><space><space><space>|<br>
-||<space><space><space><space><space><space><space><space><space><space>|<space><space><space><space><space><space><space><space><space><space>|<space><space><space><space><space><space><space><space><space><space>|<br>
-d=0        d=4        d=8        d=12
