@@ -45,7 +45,6 @@ using std::vector;
 #define STAY_IN_LANE_AFTER_LC      30
 
 typedef struct{
-  double dist;
   double vel;
   double s;
   int    id;
@@ -219,7 +218,6 @@ double interpol(double actual_dist, double dmin, double dmax,
 
 void initialize_objects(obj &pos)
 {
-  pos.dist = 100000.0;
   pos.vel  = 0.0;
   pos.id   = -1;
   pos.s    = 100000.0;

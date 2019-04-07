@@ -53,9 +53,9 @@ int main() {
     map_waypoints_dy.push_back(d_y);
   }
 
-  static int lane       = 1;   
-  static int lane_count = 0;
-  static double ref_vel = 0;  //mph
+  static int lane       = 1;  // Lane ID: 0 - lEFT lane; 1 - middle ln; 2 - right ln  
+  static int lane_count = 0;  // Counter for time in current lane
+  static double ref_vel = 0;  // Reference Velocity in mph
 
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
                &map_waypoints_dx,&map_waypoints_dy]
@@ -106,6 +106,9 @@ int main() {
            *   sequentially every .02 seconds
            */
 
+          /*************************************************************************
+          *  Section 1: Initilize Variables
+          *************************************************************************/
           vector<double> ptsx;
           vector<double> ptsy;
 
@@ -123,20 +126,46 @@ int main() {
           int target_lane   = MIDDLE_LANE;
           int prev_size     = previous_path_x.size();
 
+          /* 
+          5 surrounding cars are tracked in the algo
+                          [2] |  [0]  | [4]
+                              |       |   
+                              |[Host] |
+                              |       |
+                          [1] |       | [3]
+
+          */
           obj pos0;
           obj pos1;
           obj pos2;
           obj pos3;
           obj pos4;
 
+          // Initialize the objects to default initial values
           initialize_objects(pos0);
           initialize_objects(pos1);
           initialize_objects(pos2);
           initialize_objects(pos3);
           initialize_objects(pos4);
 
+          /* Section1: END */
+
+
+          // Update the lane counter and restrict it to max value of 
+          // STAY_IN_LANE_AFTER_LC + 5
           lane_count = (lane_count < STAY_IN_LANE_AFTER_LC + 5) ? lane_count + 1 :
                         lane_count;
+
+          // Set the current s value to last s value of the previous path
+          if (prev_size > 0) 
+          {
+            car_s = end_path_s;
+          }
+
+          /*************************************************************************
+          * Section 2: Find the current lane of the host vehicle based on predefined
+          *            width of th lanes.
+          *************************************************************************/
 
           if (car_d < LANE_WIDTH && 
               car_d > 0.0          )
@@ -154,13 +183,17 @@ int main() {
             lane = RIGHT_LANE;
           }
 
-          target_lane = lane;
+          // Set the target lane as the current lane.
+          target_lane = lane; 
 
-          if (prev_size > 0)
-          {
-            car_s = end_path_s;
-          }
+          /* Section2: END */
 
+          /*************************************************************************
+          * Section3: Loop over the sension fusion data to find the car surrounding 
+          *           the host vehicle. This data will be later used to decide the 
+          *           behaviour of the host vehicle (i.e. follow the car in-front or
+          *           change lanes).
+          *************************************************************************/
           for(int i = 0; i < sensor_fusion.size(); i++)
           {
             float d = sensor_fusion[i][6];
@@ -175,12 +208,22 @@ int main() {
               double check_speed = sqrt(vx * vx + vy * vy);
               double check_car_s = sensor_fusion[i][5];
 
+              // Find the s value of the car projected into future time
               check_car_s += ((double)prev_size * TIME_INCREMENT * check_speed);
-              if((check_car_s > car_s) && ((check_car_s - car_s) < SAFE_DISTANCE))
+
+              /*
+              * if:
+              *     car is infront of the host vehicle, AND
+              *     car is closer that the "SAFE_DISTANCE (30m)", AND
+              *     car is closer thatn any other car in the host lane.
+              */
+              if((check_car_s > car_s)                   && 
+                 ((check_car_s - car_s) < SAFE_DISTANCE) &&
+                 (check_car_s < pos0.s)                    )
               {
                 car_close = true;
-                pos0.vel = check_speed;
-                pos0.s   = check_car_s;
+                pos0.vel  = check_speed;
+                pos0.s    = check_car_s;
 
                 if(check_speed < NEAR_SPEED_LIMIT)
                 {
@@ -189,10 +232,15 @@ int main() {
               }
             }
 
+            /*
+            *  Check for cars in the left lane (only if the host is in the middle 
+            *  or right lane).
+            */
             if (lane == MIDDLE_LANE || lane == RIGHT_LANE)
             { 
               lt_lane_chng = true;
 
+              // Check if a car is in the lane immediate left to the host.
               if ((d < (HALF_LANE_WIDTH + LANE_WIDTH*(lane - 1) + HALF_LANE_WIDTH))&& 
                   (d > (HALF_LANE_WIDTH + LANE_WIDTH*(lane - 1) - HALF_LANE_WIDTH)))
               {
@@ -203,6 +251,13 @@ int main() {
 
                 object_s += ((double)prev_size * TIME_INCREMENT * object_speed);
 
+                /*
+                *  Searching for car in pos 1:
+                *  if:
+                *     car is behind the host, AND
+                *     car is closer to host that any other vehicle in the left lane
+                *  
+                */
                 if (object_s < car_s && 
                     fabs(object_s - car_s) < fabs(pos1.s - car_s))
                 {
@@ -211,6 +266,13 @@ int main() {
                   pos1.vel  = object_speed;
                 }
 
+                /*
+                *  Searching for car in pos 2:
+                *  if:
+                *     car is ahead of the host, AND
+                *     car is closer to host that any other vehicle in the left lane
+                *  
+                */
                 else if (object_s > car_s && 
                          fabs(object_s - car_s) < fabs(pos2.s - car_s))
                 {
@@ -221,10 +283,15 @@ int main() {
               }
             }
 
+            /*
+            *  Check for cars in the right lane (only if the host is in the middle 
+            *  or left lane).
+            */
             if (lane == MIDDLE_LANE || lane == LEFT_LANE)
             { 
               rt_lane_chng = true;
 
+              // Check if a car is in the lane immediate right to the host.
               if((d < (HALF_LANE_WIDTH + LANE_WIDTH*(lane + 1) + HALF_LANE_WIDTH))&& 
                  (d > (HALF_LANE_WIDTH + LANE_WIDTH*(lane + 1) - HALF_LANE_WIDTH)))
               {
@@ -235,6 +302,13 @@ int main() {
 
                 object_s += ((double)prev_size * TIME_INCREMENT * object_speed);
 
+                /*
+                *  Searching for car in pos 3:
+                *  if:
+                *     car is behind the host, AND
+                *     car is closer to host that any other vehicle in the right lane
+                *  
+                */
                 if (object_s < car_s && 
                     fabs(object_s - car_s) < fabs(pos3.s - car_s))
                 {
@@ -243,6 +317,13 @@ int main() {
                   pos3.vel  = object_speed;
                 }
 
+                /*
+                *  Searching for car in pos 4:
+                *  if:
+                *     car is ahead of the host, AND
+                *     car is closer to host that any other vehicle in the right lane
+                *  
+                */
                 else if (object_s > car_s && 
                          fabs(object_s - car_s) < fabs(pos4.s - car_s))
                 {
@@ -254,22 +335,31 @@ int main() {
             }      
           }
 
-          /*
-          Decide Lane Change
+          /* Section3: END */
+
+          /*************************************************************************
+          *  Section4: Decide Lane Change. 
+          *            Lane change is decided based on eight pre-defined conditions
+          *            defined by the positions and velocities of cars in position
+          *            1, 2, 3 and 4.
+          *************************************************************************/
+
+          /* 
+          *  check for lange change 
+          *  if:
+          *     Either left lane or right lane change maneuver is valid, AND
+          *     There is a car close enough in front of the host vehcile to warrant
+          *            a lane change, AND  
+          *     The host has spent enought time in the current lane (this prevents
+          *            rapid fluctuations in lane changes).
           */
-
-          // std::cout << "Pos1: " << pos1.id << " " << pos1.dist << " " << pos1.vel << 
-          //               " " << pos1.s - car_s << " " << lane_count << std::endl;
-          // std::cout << "Pos2: " << pos2.id << " " << pos2.dist << " " << pos2.vel << 
-          //                " " << pos2.s - car_s << std::endl;
-          // std::cout << "Pos3: " << pos3.id << " " << pos3.dist << " " << pos3.vel << 
-          //                " " << pos3.s - car_s << std::endl;
-          // std::cout << "Pos4: " << pos4.id << " " << pos4.dist << " " << pos4.vel << 
-          //                " " << pos4.s - car_s << std::endl;
-
           if ((lt_lane_chng == true || rt_lane_chng == true) && car_close == true &&
                 lane_count > STAY_IN_LANE_AFTER_LC)
           {
+            /*
+            *  Preference 1: If there are no cars in the left lane, then left lane
+            *                change is a safe maneuver.
+            */
             if (pos1.id == -1 && pos2.id == -1 && lt_lane_chng == true)
             { 
               target_lane = lane - 1;
@@ -277,6 +367,10 @@ int main() {
               lane_change = true;
             }
 
+            /*
+            *  Preference 2: If there are no cars in the right lane, then right lane
+            *                change is a safe maneuver.
+            */
             if(pos3.id == -1 && pos4.id == -1 && 
                rt_lane_chng == true && lane_change == false)
             {
@@ -285,6 +379,10 @@ int main() {
               lane_change = true;
             }
 
+            /*
+            *  Preference 3: If there are no cars in front of the host vehicle the 
+            *                left lane but there is a car behind in that lane. 
+            */
             if(pos2.id == -1 && lt_lane_chng == true && lane_change == false)
             {
 
@@ -294,15 +392,22 @@ int main() {
                                               MIN_DIST_REAR_CAR_LC, 
                                               MAX_DIST_REAR_CAR_LC);
 
+              /* Check the distance of the car from the host agains a threshold 
+                 calculated based on the velocity difference of the car and the host*/
               if (fabs(pos1.s - car_s) > rear_obj_dist_thresh)
               {
                 target_lane = lane - 1;
-                target_vel  = (car_speed > pos1.vel) ? car_speed : pos1.vel;
+                target_vel  = (car_speed > pos1.vel) ? car_speed 
+                                                     : (pos1.vel + car_speed)/2;
                 lane_change = true;  
               }
 
             }
 
+            /*
+            *  Preference 4: If there are no cars in front of the host vehicle the 
+            *                right lane but there is a car behind in that lane. 
+            */
             if(pos4.id == -1 && rt_lane_chng == true && lane_change == false)                    
             { 
               double vel_diff             = pos3.vel - car_speed;
@@ -311,14 +416,21 @@ int main() {
                                               MIN_DIST_REAR_CAR_LC, 
                                               MAX_DIST_REAR_CAR_LC);
 
+              /* Check the distance of the car from the host agains a threshold 
+                 calculated based on the velocity difference of the car and the host*/
               if (fabs(pos3.s - car_s) > rear_obj_dist_thresh)
               {
                 target_lane = lane + 1;
-                target_vel  = (car_speed > pos3.vel) ? car_speed : pos3.vel;
+                target_vel  = (car_speed > pos3.vel) ? car_speed 
+                                                     : (pos3.vel + car_speed)/2;
                 lane_change = true;  
               }           
             }
 
+            /*
+            *  Preference 5: If there is a car in front of the host vehicle the 
+            *                left lane but there is no car behind.
+            */
             if(pos1.id == -1 && lt_lane_chng == true && lane_change == false)                    
             { 
               double vel_diff              = pos0.vel - pos2.vel;
@@ -327,6 +439,8 @@ int main() {
                                               MIN_DIST_FRONT_CAR_LC, 
                                               MAX_DIST_FRONT_CAR_LC);
 
+              /* Check the distance of the car from the host agains a threshold 
+                 calculated based on the velocity difference of the car and the host*/
               if ((pos2.s - pos0.s) > front_obj_dist_thresh) 
               {
                 target_lane = lane - 1;              
@@ -335,6 +449,10 @@ int main() {
               }
             } 
 
+            /*
+            *  Preference 6: If there is a car in front of the host vehicle the 
+            *                right lane but there is no car behind. 
+            */
             if(pos3.id == -1 && rt_lane_chng == true && lane_change == false)
             {              
               double vel_diff              = pos0.vel - pos4.vel;
@@ -343,6 +461,8 @@ int main() {
                                               MIN_DIST_FRONT_CAR_LC, 
                                               MAX_DIST_FRONT_CAR_LC);
 
+              /* Check the distance of the car from the host agains a threshold 
+                 calculated based on the velocity difference of the car and the host*/
               if ((pos4.s - pos0.s) > front_obj_dist_thresh) 
               {
                 target_lane = lane + 1;              
@@ -351,6 +471,10 @@ int main() {
               } 
             }
 
+            /*
+            *  Preference 7: If there is a car in front and behind the host vehicle  
+            *                in the left lane.
+            */
             if(pos1.id > -1 && pos2.id > -1 && 
                lt_lane_chng == true && lane_change == false)                    
             { 
@@ -366,6 +490,8 @@ int main() {
                                 MIN_DIST_REAR_CAR_LC, 
                                 MAX_DIST_REAR_CAR_LC);
 
+              /* Check the distance of the car from the host agains a threshold 
+                 calculated based on the velocity difference of the car and the host*/
               if ((car_s  - pos1.s) > rear_obj_dist_thresh && 
                   (pos2.s - pos0.s) > front_obj_dist_thresh  ) 
               {
@@ -375,6 +501,10 @@ int main() {
               }
             } 
 
+            /*
+            *  Preference 8: If there is a car in front and behind the host vehicle  
+            *                in the right lane.
+            */
             if(pos3.id > -1 && pos4.id > -1 && 
                 rt_lane_chng == true && lane_change == false)                    
             { 
@@ -389,6 +519,8 @@ int main() {
                                 MIN_DIST_REAR_CAR_LC, 
                                 MAX_DIST_REAR_CAR_LC);
 
+              /* Check the distance of the car from the host agains a threshold 
+                 calculated based on the velocity difference of the car and the host*/
               if ((car_s  - pos3.s) > rear_obj_dist_thresh && 
                   (pos4.s - pos0.s) > front_obj_dist_thresh  ) 
               {
@@ -398,9 +530,13 @@ int main() {
               }
             } 
           }
+          /* Section4: END */
 
-          /* END Decide Lane Change*/
-
+          /*
+          *  If lane change is detemined by the algorithm, then the spline waypoint
+          *  are chosen accordingly. The spline waypoints in this case are chosen 
+          *  further apart (30, 60, 90) to allow for a smoother lane change maneuver.
+          */
           if (lane_change == true)
           {
             strt_waypt = WAYPOINT_START_LANE_CHANGE;
@@ -408,6 +544,10 @@ int main() {
             end_waypt  = WAYPOINT_END_LANE_CHANGE;
           }
 
+          /*
+          *  If the ref_vel is less that the target velocity then increment otherwise
+          *  decrement the velocity. 
+          */
           if (ref_vel < target_vel) 
           {
             ref_vel += SPEED_INCREMENT;
@@ -417,7 +557,15 @@ int main() {
             ref_vel -= SPEED_INCREMENT;
           }
 
+          /* Restrict the ref_vel to be always within Speed Limit*/
+          ref_vel = (ref_vel < NEAR_SPEED_LIMIT) ? ref_vel : NEAR_SPEED_LIMIT;
 
+          /*************************************************************************
+          * Section5: Find the path of the vehicle.
+          *************************************************************************/
+
+          /* Pick up the previous two points of the car toa llow for a smoother
+          *  spline generation. */
           if (prev_size < 2)
           {
             double prev_car_x = car_x - cos(car_yaw);
@@ -445,6 +593,10 @@ int main() {
             ptsy.push_back(ref_y);
           }
 
+          /* 
+          *  Get three waypoint in X, Y coordinate using the target lane information
+          *  obtained from lane change section.
+          */
           vector<double> next_wp0 = getXY(car_s + strt_waypt, 
                                           (HALF_LANE_WIDTH + LANE_WIDTH * target_lane), 
                                            map_waypoints_s, map_waypoints_x, 
@@ -466,6 +618,7 @@ int main() {
           ptsy.push_back(next_wp1[1]);
           ptsy.push_back(next_wp2[1]);
 
+          /* Convert into local coordinate system of the host vehicle */
           for (int i = 0; i < ptsx.size(); i++ )
           {
             double shift_x = ptsx[i] - ref_x;
@@ -475,9 +628,12 @@ int main() {
             ptsy[i] = (shift_x * sin(0 - ref_yaw) + shift_y * cos(0 - ref_yaw));
           }
 
+          /* Generate the spline curve based on the three points provided*/
           tk::spline s;
           s.set_points(ptsx, ptsy);
 
+          /* Add previous path points which have not been traversed yet by the 
+          *   simulator.*/
           for (int i = 0; i < previous_path_x.size(); i++)
           {
             next_x_vals.push_back(previous_path_x[i]);
@@ -489,8 +645,11 @@ int main() {
           double target_dist = sqrt((target_x)*(target_x) + (target_y)*(target_y));
           double x_add_on    = 0.0;
 
+          /* Add new path points so that the total path points = 50*/
           for(int i = 1; i <= PATH_POINTS - previous_path_x.size(); i++)
           {
+
+            /* Divide the spline into smaller segments based on the ref_vel*/
             double N = (target_dist/(TIME_INCREMENT * ref_vel/MPH2MS));
             double x_point = x_add_on + (target_x)/N;
             double y_point = s(x_point);
@@ -511,6 +670,10 @@ int main() {
             next_y_vals.push_back(y_point);
 
           }
+
+          /*
+          *  END: Section5 
+          */
 
 
           msgJson["next_x"] = next_x_vals;
