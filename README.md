@@ -37,3 +37,11 @@ Once the objects are identified, the algorithm decides if the a lane change is r
 Once the next car maneuver is identified by the algorithm, then the actual path to be followed by the host vehicle if found out. For this the technique described by Aron Brown (from Udacity) is considered. First, three waypoints are considered. For a simple task of keeping within lane, waypoints are considered closer to each other since complex motion of the car is not expected. Whereas, if a lane change is required complex motion of the host vehicle is expected. Hence longer waypoints were considered so that the final path generated is smoother and accelarations values are within acceptable level. The waypoint values were achieved through trial and error process. <br>
 
 After the waypoints are known, a spline curve is generated which smoothly connects these five points (three points from the waypoint discussed in the above paragraph) plus two points from the previous path. After generating the spline, points lying on that curve need to be found out. The separation of points is determined by the target velocity for that cycle. The pints are separated such that the velocity and accelarations needed to reach those points are within acceptable levels. 
+
+## Results
+The algorithm was able to navigate around the track safetly meeting the required criteria of being able to drive 4.32 miles without incedent. 
+
+## Improvements
+There are several improvement that can be made in the algorithm: <br>
+- A cost function can be devised to bake in all the expected scenarios rather than follow a decidion tree. <br>
+- Speed of the host vehicle can be altered to allow for quicker maneuver to different lanes. <br>
